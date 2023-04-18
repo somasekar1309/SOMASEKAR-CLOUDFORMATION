@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: creating the vpc
+#correct
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "vpc"
+        Parameters: 
+          - VpcCIDR
+      - 
+        Label: 
+          default: "subnet"
+        Parameters: 
+          - subnetCIDR
+
+Parameters:
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: creating the vpc
+  subnetCIDR:
+    Type: String
+    Default: 10.0.0.0/24
+    Description: created the vpc
+
+Resources:
+  mynewVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: VpcCIDR
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: "default"
+      Tags:
+      - Key: stack
+        Value: Do
+
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: rs
+        Value: rudraig  
+  
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: mynewVPC
+      InternetGatewayId:
+        Ref: myInternetGateway
+
+  mypublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: mynewVPC
+      CidrBlock: 
+        Ref: subnetCIDR
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: mama
+        Value: rudrapublic  
+
+  myRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: mynewVPC
+      Tags:
+      - Key: mama
+        Value: rudrart
+
+  myRoute:
+    Type: AWS::EC2::Route
+    Properties:
+       RouteTableId:
+         Ref: myRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: myInternetGateway     
+
+  mySubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: mypublicSubnet
+      RouteTableId:
+        Ref: myRouteTable
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      GroupName: "soo"
+      VpcId: 
+        Ref: mynewVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+  
+  myec2instances:
+    Type: AWS::EC2::Instance
+    Properties:
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true" #wrong
+      ImageId: "ami-069aabeee6f53e7bf"
+      InstanceType: "t2.micro"
+      KeyName: "happy"
+      SubnetId:
+        Ref: mypublicSubnet 
+      SecurityGroupIds:
+        - Ref: "InstanceSecurityGroup"
+      Tags:
+       - Key: haa
+         Value: loud   
+
+  myVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      Size: 98
+      AvailabilityZone: "us-east-1a" 
+      VolumeType: gp2
+      Tags:
+        - Key: qq
+          Value: mamavolume
+  
+
+Outputs:
+  myec2instances:
+    Description: The ID of the ec2 instances
+    Value: 
+      Ref: myec2instances  
+    Export:
+      Name: myec2instances
+
+  mynewVPC:
+    Description: The ID of the vpc
+    Value: 
+      Ref: mynewVPC
+    Export:
+      Name: mynewVPC
+
+  myInternetGateway:
+    Description: The ID of the Ig
+    Value: 
+      Ref: myInternetGateway
+    Export:
+      Name: myInternetGateway
+
+  myRouteTable:
+    Description: The ID of the route
+    Value: 
+      Ref: myRouteTable
+    Export:
+      Name: myRouteTable
+
+  InstanceSecurityGroup:
+    Description: The ID of the security
+    Value: 
+      Ref: InstanceSecurityGroup
+    Export:
+      Name: InstanceSecurityGroup 
+
+  mypublicSubnet: 
+    Description: The ID of the subnet
+    Value: 
+      Ref: mypublicSubnet
+    Export:
+      Name: mypublicSubnet
+
+  myVolume:
+    Description: The ID of the volume
+    Value: 
+      Ref: myVolume
+    Export:
+      Name: myVolume

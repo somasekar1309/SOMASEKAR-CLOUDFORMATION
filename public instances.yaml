@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: creating the vpc,subnet,route,internetgateway,ec2 instances
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/17
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+        - Key: "Name"
+          Value: "newvpc"
+
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: "Name"
+        Value: "internetgateway"
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: 
+        Ref: myInternetGateway
+      VpcId: 
+        Ref: myVPC
+
+  mypublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1a"
+      Tags:
+        - Key: "Name"
+          Value: "newsubnet"
+
+  myRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: myVPC
+      Tags:
+      - Key: "Name"
+        Value: "newroute"
+
+  myRoute:
+    Type: AWS::EC2::Route
+    Properties:
+       RouteTableId:
+         Ref: myRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: myInternetGateway
+  
+  mySubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: mypublicSubnet
+      RouteTableId:
+        Ref: myRouteTable
+  
+  myec2instances:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-069aabeee6f53e7bf"
+      InstanceType: "t2.micro"
+      KeyName: "happy"
+      SubnetId:
+        Ref: mypublicSubnet 
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: 0
+        SubnetId:
+          Ref: mypublicSubnet
+      Tags:
+       - Key: "Name"
+         Value: "my-cf-instances"  
