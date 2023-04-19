@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creating the codecommit
+
+Parameters:
+  Password:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+
+# creating the codecommit repository
+Resources:
+  mycodecommit:
+    Type: AWS::CodeCommit::Repository
+    Properties: 
+      RepositoryDescription: Create the new codecommit
+      RepositoryName: mycode
+      Tags:
+      - Key: "my"
+        Value: "code"
+
+#Creating the IAM user 
+  
+  Soma:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Password
+
+# Attaching  policies to the user  
+  newonePolicytocodecommit:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "codecommit"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: 
+              - "codecommit:*"
+            Resource: "*"
+      Users:
+        - Ref: Soma
