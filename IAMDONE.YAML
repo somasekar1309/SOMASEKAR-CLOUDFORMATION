@@ -1,0 +1,257 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creating the IAM
+
+#link: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-iam.html#scenario-iam-addusertogroup
+
+Parameters:
+  Password:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+
+  Passwordone:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$ 
+    
+  Passwordtwo:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$ 
+
+  Passwordthree:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+  
+  Passwordfour:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+
+  Passwordfive:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+
+  Passwordsix:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+
+Resources:
+# creating the user with security and password
+  Soma:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Password
+
+# adding multiple user in IAM
+  Rudra:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Passwordone
+
+  Ganga:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Passwordtwo
+
+  Yogesh:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Passwordthree
+
+  Damu:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Passwordfour
+
+  pavan:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Passwordfive
+
+  lalu:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Passwordsix
+
+
+  #creating the group
+
+  Newgroupaws:
+    Type: AWS::IAM::Group
+    Properties: 
+      GroupName: "bucketaws"
+
+  
+
+#adding the user to the group
+  addUserToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: "bucketaws"
+      Users:
+      - Ref: Damu
+      - Ref: Yogesh
+      - Ref: Ganga
+      - Ref: Rudra
+      - Ref: Soma
+
+#attaching policies to users
+
+  newonePolicytoinstances:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "s3bucket"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: 
+              - "s3:*"
+            Resource: "*"
+      Groups:
+        - Ref: Newgroupaws
+
+#creating the group
+  containergroup:
+    Type: AWS::IAM::Group
+    Properties: 
+      GroupName: "container"
+
+# creating  the group add the members to the group
+  containermemberstoGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: "container"
+      Users:
+      - Ref: pavan
+      - Ref: lalu
+
+# creating the policy for the container
+  containerpolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "containerpolicyaws"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: 
+              - "ecs:*"
+            Resource: "*"
+      Groups:
+        - Ref: containergroup
+
+
+Outputs:
+  Soma:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: Soma
+    Export:
+      Name: Soma
+
+  Rudra:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: Rudra
+    Export:
+      Name: Rudra
+
+  Damu:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: Damu
+    Export:
+      Name: Damu
+
+  Ganga:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: Ganga
+    Export:
+      Name: Ganga
+
+  Yogesh:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: Yogesh
+    Export:
+      Name: Yogesh
+
+  lalu:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: lalu
+    Export:
+      Name: lalu
+
+  pavan:
+    Description: PRINT THE USERNAME
+    Value: 
+      Ref: pavan
+    Export:
+      Name: pavan
+  
+  Newgroupaws:
+    Description: PRINT THE GROUP NAME
+    Value: 
+      Ref: Newgroupaws
+    Export:
+      Name: Newgroupaws
+
+  containergroup:
+    Description: PRINT THE GROUP NAME
+    Value: 
+      Ref: containergroup
+    Export:
+      Name: containergroup
+
+  containerpolicy:
+    Description: PRINT THE GROUP NAME
+    Value: 
+      Ref: containerpolicy
+    Export:
+      Name: containerpolicy
+
+  newonePolicytoinstances:
+    Description: PRINT THE GROUP NAME
+    Value: 
+      Ref: newonePolicytoinstances
+    Export:
+      Name: newonePolicytoinstances
+
+  
+
+  
