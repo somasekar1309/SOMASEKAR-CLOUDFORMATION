@@ -1,0 +1,26 @@
+#Below mentioned is used for ec2 intances installing the appacheserver and uploading the html content
+
+
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "<html><body><h1>Heading 1</h1><h2>Heading 2</h2></body></html>" > /var/www/html/index.html
+
+
+
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "<html>
+          <body>
+          <p><b>This text is bold</b></p>
+          <p><i>This text is italic</i></p>
+          <p>This is<sub> subscript</sub> and <sup>superscript</sup></p></body></html>" > /var/www/html/index.html
