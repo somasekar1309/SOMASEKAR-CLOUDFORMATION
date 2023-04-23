@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: creating the user and giving the permission to the ec2 instances only for create not reboot,stop,terminate
+
+Parameters:
+  Password:
+    Type: String
+    Description: Please enter a password 
+    ConstraintDescription: Password must be between 8 and 32 characters, start with lowercase or uppercase letter, and can be alphanumeric with the following special characters !@#$%& 
+    NoEcho: true
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9!@#$%&]{8,32}$
+
+Resources:
+
+#creating the IAM user
+  jaya:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 
+          Ref: Password
+
+#creating the policy for the user to start and launch instances
+
+  jayainstancespolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "instancespolicyaws"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: 
+              - "ec2:Describe*"
+              - "ec2:RunInstances" 
+              - "ec2:CreateImage"
+              - "ec2:CreateKeyPair"
+              - "ec2:CreateLaunchTemplate"
+              - "ec2:CreateRoute"
+              - "ec2:CreateRouteTable"
+              - "ec2:CreateSecurityGroup"
+              - "ec2:Createsubnet"
+              - "ec2:CreateVolume"
+              - "ec2:CreateVPC"
+              - "ec2:CreateNetworkInterface"
+              - "ec2:CreateInstances"
+              - "ec2:CreateTags"
+              - "ec2:DescribeInstances"
+              - "ec2:DescribeKeyPairs"
+              - "ec2:DescribeSecurityGroups"
+              - "ec2:ImportKeyPair"
+              - "ec2:CreateSnapshot"
+            Resource: "*"
+          - Effect: "Deny"
+            Action:
+              - "ec2:StopInstances"
+              - "ec2:TerminateInstances"
+              - "ec2:RebootInstances"
+            Resource: "*"
+      Users:
+        - Ref: jaya
+
+Outputs:
+  jaya:
+    Description: userid for the references
+    Value: 
+      Ref: jaya
+    Export:
+      Name: jaya
+
+  jayainstancespolicy:
+    Description: userid for the references
+    Value: 
+      Ref: jayainstancespolicy
+    Export:
+      Name: jayainstancespolicy
