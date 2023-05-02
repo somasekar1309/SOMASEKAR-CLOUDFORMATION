@@ -1,0 +1,204 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CREATING THE MAPPING TEMPLATE
+
+Mappings:
+  Regionmap:
+    us-east-1:
+      AMI: ami-02396cdd13e9a1257
+
+    ap-south-1:
+      AMI: ami-0c768662cc797cd75
+
+  s3bucket:
+    us-east-1:
+      Name: somasekarschema
+
+    ap-south-1:
+      Name: schemesoma
+    
+Parameters:
+  vpcid:
+    Type: String
+    Default: 10.0.0.0/19
+    AllowedValues:
+      - 10.0.0.0/19
+      - 10.0.0.0/16
+      - 10.0.0.0/17
+      - 10.0.0.0/18   
+    Description: cidr value vpc
+
+  SubnetId:
+    Type: String
+    Default: 10.0.0.0/24
+    AllowedValues:
+      - 10.0.0.0/24
+      - 10.0.0.0/25
+      - 10.0.0.0/26  
+    Description: cidrvalue for subnet
+
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium, t2.large, t2.xlarge, t2.2xlarge,
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+      m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge,
+      c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5.9xlarge,
+      g3.8xlarge,
+      r5.large, r5.xlarge, r5.2xlarge, r5.4xlarge, r3.12xlarge,
+      i3.xlarge, i3.2xlarge, i3.4xlarge, i3.8xlarge,
+      d2.xlarge, d2.2xlarge, d2.4xlarge, d2.8xlarge]
+    Description: instance type for thr ec2 instances
+
+Resources:
+
+#creating the vpc
+  myautoscalingVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: vpcid
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: "default"
+      Tags:
+      - Key: "Name"
+        Value: "vpcautoscaling"
+
+#creating the internet gateway
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: "Name"
+        Value: "internetautoscaling"
+
+#attaching the internetgateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: myautoscalingVPC
+      InternetGatewayId:
+        Ref: InternetGateway 
+
+#craeting the subnet
+
+  mySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myautoscalingVPC
+      CidrBlock: 
+        Ref: SubnetId
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: "Name"
+        Value: "subnetautoscaling"
+
+#creating the routetable
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: myautoscalingVPC
+      Tags:
+      - Key: "Name"
+        Value: "routeautoscaling"
+
+#adding the inteernetgateway to the rouetable
+
+  myRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway  
+
+# adding the subnet to the routetable
+
+  mySubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: mySubnet
+      RouteTableId:
+        Ref: RouteTable
+
+#creating the security group
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      GroupName: "autoscaling"
+      VpcId: 
+        Ref: myautoscalingVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: 
+        Ref: autoscalingec2instances
+
+  autoscalingec2instances:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [Regionmap, !Ref 'AWS::Region', AMI]
+      InstanceType: 
+        Ref: InstanceType      
+      KeyName: "moo"
+      SubnetId:
+        Ref: mySubnet
+      SecurityGroupIds:
+        - Ref: "InstanceSecurityGroup"
+      Tags:
+       - Key: "Name"
+         Value: "scalingec2"
+
+# creating the s3 bucket
+
+  MyS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !FindInMap [s3bucket, !Ref AWS::Region, Name]
+
+
+Outputs:
+  MyS3Bucket:
+    Value: 
+      Ref: MyS3Bucket
+
+  PublicIp:
+    Description: "Public IP of the EC2 instance"
+    Value: !GetAtt autoscalingec2instances.PublicIp
+  PublicDns:
+    Description: "Public DNS of the EC2 instance"
+    Value: !GetAtt autoscalingec2instances.PublicDnsName
+  PrivateDns:
+    Description: "Private DNS of the EC2 instance"
+    Value: !GetAtt autoscalingec2instances.PrivateDnsName
+  vpcDhcp:
+    Description: "DHCP option set"
+    Value: !GetAtt myautoscalingVPC.VpcId
+  
+

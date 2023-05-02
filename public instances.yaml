@@ -33,7 +33,7 @@ Resources:
       VpcId:
         Ref: myVPC
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: "us-east-1a"
+      AvailabilityZone: "ap-northeast-1a"
       Tags:
         - Key: "Name"
           Value: "newsubnet"
@@ -63,13 +63,19 @@ Resources:
         Ref: mypublicSubnet
       RouteTableId:
         Ref: myRouteTable
+
+ # creating the key pair
+  autoscalingKeyPair:
+    Type: 'AWS::EC2::KeyPair'
+    Properties:
+      KeyName: mamaa
   
   myec2instances:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: "ami-069aabeee6f53e7bf"
       InstanceType: "t2.micro"
-      KeyName: "happy"
+      KeyName: "mamaa"
       SubnetId:
         Ref: mypublicSubnet 
       NetworkInterfaces:

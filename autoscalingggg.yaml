@@ -1,0 +1,299 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creating the RDS
+
+
+#LINK:https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#aws-resource-elasticloadbalancingv2-loadbalancer-properties
+#link:https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-port
+#link:https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-launchconfiguration.html#cfn-autoscaling-launchconfiguration-classiclinkvpcsecuritygroups
+Parameters:
+  vpcid:
+    Type: String
+    Default: 10.0.0.0/19
+    Description: cidr value vpc
+
+  SubnetId:
+    Type: String
+    Default: 10.0.0.0/24
+    Description: cidrvalue for subnet
+
+  SubnetId2:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: cidrvalue for subnet
+
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    Description: instance type for thr ec2 instances
+
+  LanuchconfigurationInstanceType:
+    Description: Amazon EC2 instance type for the instances
+    Type: String
+    Default: t2.micro
+
+   
+Resources:
+
+#creating the vpc
+  myautoscalingVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: vpcid
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: "default"
+      Tags:
+      - Key: "Name"
+        Value: "vpcautoscaling"
+
+#creating the internet gateway
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: "Name"
+        Value: "internetautoscaling"
+
+#attaching the internetgateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: myautoscalingVPC
+      InternetGatewayId:
+        Ref: InternetGateway 
+
+#craeting the subnet
+
+  mySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myautoscalingVPC
+      CidrBlock: 
+        Ref: SubnetId
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: "Name"
+        Value: "subnetautoscaling"
+
+  mySubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myautoscalingVPC
+      CidrBlock: 
+        Ref: SubnetId2
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: "Name"
+        Value: "loadbalancer"
+
+#creating the routetable
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: myautoscalingVPC
+      Tags:
+      - Key: "Name"
+        Value: "routeautoscaling"
+
+#adding the inteernetgateway to the rouetable
+
+  myRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway  
+
+# adding the subnet to the routetable
+
+  mySubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: mySubnet
+      RouteTableId:
+        Ref: RouteTable
+
+#creating the security group
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      GroupName: "autoscaling"
+      VpcId: 
+        Ref: myautoscalingVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+#creating the key pair
+  autoscalingKeyPair:
+    Type: 'AWS::EC2::KeyPair'
+    Properties:
+      KeyName: mook
+
+#creating the instances
+  autoscalingec2instances:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-02396cdd13e9a1257"
+      InstanceType: 
+        Ref: InstanceType      
+      KeyName: "mook"
+      SubnetId:
+        Ref: mySubnet
+      SecurityGroupIds:
+        - Ref: "InstanceSecurityGroup"
+      Tags:
+       - Key: "Name"
+         Value: "scalingec2"
+
+#creating the volume
+  NewVolume:
+    Type: AWS::EC2::Volume
+    Properties: 
+      Size: 30
+      Encrypted: true
+      AvailabilityZone: "us-east-1a"
+      Tags:
+        - Key: "Name"
+          Value: "volume"
+
+#attching the volume to the ec2
+  MountPoint:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/sdh
+      InstanceId: 
+        Ref: autoscalingec2instances
+      VolumeId: 
+        Ref: NewVolume
+
+#creating the target group to the instances
+  
+  Targetgroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId:
+        Ref: myautoscalingVPC 
+
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host..
+      GroupName: "loadbalancer"
+      VpcId: 
+        Ref: myautoscalingVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+
+#creating the load balancer
+  Applicationloadbalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      Name: pava
+      Scheme: internet-facing
+      SecurityGroups: 
+        - Ref: SecurityGroup
+      Subnets: 
+        - Ref: mySubnet
+        - Ref: mySubnet1
+      Type: application
+
+
+
+  configure:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties: 
+      ImageId: ami-01c5c47a722e43a41
+      InstanceType: 
+        Ref: LanuchconfigurationInstanceType
+      InstanceMonitoring: true
+      LaunchConfigurationName: sooname
+
+
+  MyAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: oneauto-scaling-group
+      AvailabilityZones:
+        - us-east-1a
+        - us-east-1b
+      VPCZoneIdentifier: 
+      -  Ref: mySubnet
+      -  Ref: mySubnet1 
+      LaunchConfigurationName: 
+        Ref: configure
+      MinSize: 1
+      MaxSize: 5
+      DesiredCapacity: 2
+      NotificationConfigurations:
+        - TopicARN: 
+            Ref: MySNSTopic
+          NotificationTypes:
+            - "autoscaling:EC2_INSTANCE_LAUNCH"
+            - "autoscaling:EC2_INSTANCE_TERMINATE"
+      Tags:
+        - Key: "Name"
+          Value: "myautoscalinggroups"
+          PropagateAtLaunch: true
+
+
+  MyScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: 
+        Ref: MyAutoScalingGroup
+      Cooldown: '300'
+      PolicyType: SimpleScaling
+      ScalingAdjustment: '2'
+  #Should mention the cpu utilization
+
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: EC2logs
+      TopicName: alarmss
+      Subscription:
+        - Protocol: email
+          Endpoint: somasekar8331@gmail.com
+
